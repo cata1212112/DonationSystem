@@ -1,0 +1,143 @@
+{
+	"compiler": {
+		"version": "0.8.22+commit.4fc1097e"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "contract Donee",
+						"name": "donee",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "creator",
+						"type": "address"
+					}
+				],
+				"name": "DoneeCreated",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "allDonees",
+				"outputs": [
+					{
+						"internalType": "contract Donee[]",
+						"name": "donees",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "description",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "image",
+						"type": "string"
+					},
+					{
+						"internalType": "address payable",
+						"name": "withdrawalAddress",
+						"type": "address"
+					}
+				],
+				"name": "createDonee",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "doneesCnt",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"DoneeFactory.sol": "DoneeFactory"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/access/Ownable.sol": {
+			"keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6",
+				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
+			]
+		},
+		"@openzeppelin/contracts/utils/Context.sol": {
+			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12",
+				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
+			]
+		},
+		"Donee.sol": {
+			"keccak256": "0xc18a6e838035db856252c2c391c940462448d7e1ac20aec6567c694caebaf979",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://624f2b286aa303a461561021fa51f023a94178472051aa57cd783158ea7246c2",
+				"dweb:/ipfs/QmPbCyUhkXUGPucuGHWyw9btBuGQXb5xDPhPCf9ri8YZA1"
+			]
+		},
+		"DoneeFactory.sol": {
+			"keccak256": "0xf5aab8fd70c15e280f2d43911a55956222929391571dae4edf186f43e49cdbd1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://d4b4540bfa13e1bf761d31a4a5bfbf3bd433e4661d20cb46d536a3eacf40a1ef",
+				"dweb:/ipfs/QmYk8ortAAF3Z3RcaJX5doSkttfCQFq3E7eWYgVfT4RSRL"
+			]
+		}
+	},
+	"version": 1
+}
