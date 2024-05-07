@@ -144,20 +144,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "donee_address",
-				"outputs": [
-					{
-						"internalType": "address payable",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "image",
+				"name": "ipfsImageHash",
 				"outputs": [
 					{
 						"internalType": "string",
@@ -345,11 +332,11 @@
 			]
 		},
 		"Donee.sol": {
-			"keccak256": "0xc18a6e838035db856252c2c391c940462448d7e1ac20aec6567c694caebaf979",
+			"keccak256": "0x4737c56663dbbc3888a76f75d126db9a1a2f452a1cbf5016191c0df513f283a6",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://624f2b286aa303a461561021fa51f023a94178472051aa57cd783158ea7246c2",
-				"dweb:/ipfs/QmPbCyUhkXUGPucuGHWyw9btBuGQXb5xDPhPCf9ri8YZA1"
+				"bzz-raw://1c1fb13e53d24a37a9b28cef2b672270a37cd114e0e56e9ce3aa1e9d60d1e048",
+				"dweb:/ipfs/Qmbk99YgWeG2nGEnQU6y89txH2X4xEbiV879MKsy3pKEC7"
 			]
 		}
 	},

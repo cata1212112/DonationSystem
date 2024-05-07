@@ -16,13 +16,13 @@ contract Donee is Ownable{
 
     string public name;
     string public description;
-    string public image;
-    address payable public donee_address;
+    string public ipfsImageHash;
+    address payable private donee_address;
 
     constructor(string memory _name, string memory _description, string memory _image, address payable _donee_address, address creator) Ownable(msg.sender) {
         name = _name;
         description = _description;
-        image = _image;
+        ipfsImageHash = _image;
         donee_address = _donee_address;
         _transferOwnership(creator);
     }
