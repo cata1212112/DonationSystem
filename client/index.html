@@ -2,424 +2,342 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Donee DApp</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css">
+    <style>
+        #eventsConsole {
+            height: 200px;
+            overflow-y: scroll;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
 </head>
 <body>
 <div class="container mt-5">
     <div id="accountInfo">Connected Account: <span id="accountAddress"></span></div>
     <button onclick="window.location.href='newDonee.html'">Create New Donee</button>
     <h1>Existing Donees</h1>
-    <div id="doneesList" class="list-group">
+    <div id="doneesList" class="list-group"></div>
+    <h2>All Accounts and Balances</h2>
+    <div id="accountsList" class="list-group"></div>
+    <h2>Event Log</h2>
+    <div id="eventsConsole"></div>
+</div>
+
+<!-- Modal for Donation History -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="historyModalLabel">Donation History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul id="historyList" class="list-group"></ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="observerPattern.js"></script>
 <script src="app.js"></script>
 <script>
+    let web3;
+
+    async function initWeb3() {
+        if (window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                return web3;
+            } catch (error) {
+                console.error("User denied account access", error);
+            }
+        } else {
+            console.error('Non-Ethereum browser detected. Consider trying MetaMask!');
+        }
+    }
+
+    async function getEthUsdPrice() {
+        const priceFeedAddress = "0x76c4DABA883c1fDFdCe6734e01B9842dbabB4cA9";
+        const response = await fetch('src/contracts/MockV3Aggregator.json');
+        const jsonData = await response.json();
+        const priceFeedABI = jsonData["abi"];
+        const priceFeed = new web3.eth.Contract(priceFeedABI, priceFeedAddress);
+        const latestRoundData = await priceFeed.methods.latestRoundData().call();
+        return Number(latestRoundData.answer); // Convert BigInt to Number
+    }
+
+    async function displayAccountsAndBalances() {
+        const accountsList = document.getElementById('accountsList');
+        const accounts = await web3.eth.getAccounts();
+
+        for (const account of accounts) {
+            const balance = await web3.eth.getBalance(account);
+            const balanceInEth = web3.utils.fromWei(balance, 'ether');
+
+            const listItem = document.createElement('div');
+            listItem.classList.add('list-group-item');
+            listItem.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <span>${account}</span>
+                    <span>${balanceInEth} ETH</span>
+                </div>
+            `;
+            accountsList.appendChild(listItem);
+        }
+    }
+
+    function handleDoneeCreated(event) {
+        console.log('Donee Created Event:', event.returnValues);
+        fetchAndDisplayEvents();
+    }
+
+    async function setupEventListeners(doneeFactoryContract) {
+        doneeFactoryContract.events.DoneeCreated({}, (error, event) => {
+            if (error) {
+                console.error('Error handling DoneeCreated event:', error);
+            } else {
+                handleDoneeCreated(event);
+            }
+        });
+    }
+
+    async function fetchAndDisplayEvents() {
+        const response = await fetch('http://localhost:3000/events');
+        const events = await response.json();
+        const eventsConsole = document.getElementById('eventsConsole');
+        eventsConsole.innerHTML = '';
+        events.forEach(event => {
+            const eventElement = document.createElement('div');
+            eventElement.innerText = `${event.timestamp} - ${event.event}: ${JSON.stringify(event.returnValues)}`;
+            eventsConsole.appendChild(eventElement);
+        });
+        eventsConsole.scrollTop = eventsConsole.scrollHeight; // Scroll to bottom
+    }
+
     window.addEventListener('load', function() {
-        initWeb3().then((web3) => {
+        initWeb3().then(async () => {
+            try {
+                const response = await fetch('src/contracts/DoneeFactory.json');
+                const jsonData = await response.json();
+                const doneeFactoryAddress = '0x0afF9ed7941A6BAD7F878Cbf34A49182f1A85A2f';
+                const doneeFactoryABI = jsonData["abi"];
 
-            const doneeFactoryAddress = '0x03adA5e84d2E416e8Ef730F65d0b52a8F81CFc05';
-            const doneeFactoryABI = [
-                {
-                    "anonymous": false,
-                    "inputs": [
-                        {
-                            "indexed": true,
-                            "internalType": "contract Donee",
-                            "name": "donee",
-                            "type": "address"
-                        },
-                        {
-                            "indexed": true,
-                            "internalType": "address",
-                            "name": "creator",
-                            "type": "address"
-                        }
-                    ],
-                    "name": "DoneeCreated",
-                    "type": "event"
-                },
-                {
-                    "inputs": [],
-                    "name": "doneesCnt",
-                    "outputs": [
-                        {
-                            "internalType": "uint256",
-                            "name": "",
-                            "type": "uint256"
-                        }
-                    ],
-                    "stateMutability": "view",
-                    "type": "function",
-                    "constant": true
-                },
-                {
-                    "inputs": [
-                        {
-                            "internalType": "string",
-                            "name": "name",
-                            "type": "string"
-                        },
-                        {
-                            "internalType": "string",
-                            "name": "description",
-                            "type": "string"
-                        },
-                        {
-                            "internalType": "string",
-                            "name": "image",
-                            "type": "string"
-                        },
-                        {
-                            "internalType": "address payable",
-                            "name": "withdrawalAddress",
-                            "type": "address"
-                        }
-                    ],
-                    "name": "createDonee",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                },
-                {
-                    "inputs": [],
-                    "name": "allDonees",
-                    "outputs": [
-                        {
-                            "internalType": "contract Donee[]",
-                            "name": "donees",
-                            "type": "address[]"
-                        }
-                    ],
-                    "stateMutability": "view",
-                    "type": "function",
-                    "constant": true
-                }
-            ];
-            const contract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
+                const doneeObserver = new DoneeObserver();
+                const subject = new Subject();
+                subject.addObserver(doneeObserver);
 
+                const doneeFactoryContract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
+                setupEventListeners(doneeFactoryContract);
 
-
-            contract.methods.allDonees().call().then(async (donees) => {
-                console.log(donees);
+                const donees = await doneeFactoryContract.methods.allDonees().call();
                 const listContainer = document.getElementById('doneesList');
+                const accounts = await web3.eth.getAccounts();
+                const currentAccount = accounts[0];
+
+                // Fetch the latest ETH/USD price
+                const ethUsdPrice = await getEthUsdPrice();
+
                 for (const doneeAddress of donees) {
+                    const doneeResponse = await fetch('src/contracts/Donee.json');
+                    const doneeJsonData = await doneeResponse.json();
+                    const doneeAbi = doneeJsonData["abi"];
+                    const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
 
-                    doneeAbi = [
-                        {
-                            "inputs": [
-                                {
-                                    "internalType": "string",
-                                    "name": "_name",
-                                    "type": "string"
-                                },
-                                {
-                                    "internalType": "string",
-                                    "name": "_description",
-                                    "type": "string"
-                                },
-                                {
-                                    "internalType": "string",
-                                    "name": "_image",
-                                    "type": "string"
-                                },
-                                {
-                                    "internalType": "address payable",
-                                    "name": "_donee_address",
-                                    "type": "address"
-                                },
-                                {
-                                    "internalType": "address",
-                                    "name": "creator",
-                                    "type": "address"
-                                }
-                            ],
-                            "stateMutability": "nonpayable",
-                            "type": "constructor"
-                        },
-                        {
-                            "inputs": [
-                                {
-                                    "internalType": "address",
-                                    "name": "owner",
-                                    "type": "address"
-                                }
-                            ],
-                            "name": "OwnableInvalidOwner",
-                            "type": "error"
-                        },
-                        {
-                            "inputs": [
-                                {
-                                    "internalType": "address",
-                                    "name": "account",
-                                    "type": "address"
-                                }
-                            ],
-                            "name": "OwnableUnauthorizedAccount",
-                            "type": "error"
-                        },
-                        {
-                            "anonymous": false,
-                            "inputs": [
-                                {
-                                    "indexed": true,
-                                    "internalType": "address",
-                                    "name": "previousOwner",
-                                    "type": "address"
-                                },
-                                {
-                                    "indexed": true,
-                                    "internalType": "address",
-                                    "name": "newOwner",
-                                    "type": "address"
-                                }
-                            ],
-                            "name": "OwnershipTransferred",
-                            "type": "event"
-                        },
-                        {
-                            "anonymous": false,
-                            "inputs": [
-                                {
-                                    "indexed": false,
-                                    "internalType": "uint256",
-                                    "name": "ammount",
-                                    "type": "uint256"
-                                }
-                            ],
-                            "name": "Withdraw",
-                            "type": "event"
-                        },
-                        {
-                            "anonymous": false,
-                            "inputs": [
-                                {
-                                    "indexed": true,
-                                    "internalType": "address",
-                                    "name": "donor",
-                                    "type": "address"
-                                },
-                                {
-                                    "indexed": false,
-                                    "internalType": "uint256",
-                                    "name": "value",
-                                    "type": "uint256"
-                                }
-                            ],
-                            "name": "donationReceived",
-                            "type": "event"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "description",
-                            "outputs": [
-                                {
-                                    "internalType": "string",
-                                    "name": "",
-                                    "type": "string"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "donee_address",
-                            "outputs": [
-                                {
-                                    "internalType": "address payable",
-                                    "name": "",
-                                    "type": "address"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "image",
-                            "outputs": [
-                                {
-                                    "internalType": "string",
-                                    "name": "",
-                                    "type": "string"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "name",
-                            "outputs": [
-                                {
-                                    "internalType": "string",
-                                    "name": "",
-                                    "type": "string"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "owner",
-                            "outputs": [
-                                {
-                                    "internalType": "address",
-                                    "name": "",
-                                    "type": "address"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "raised",
-                            "outputs": [
-                                {
-                                    "internalType": "uint256",
-                                    "name": "",
-                                    "type": "uint256"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "renounceOwnership",
-                            "outputs": [],
-                            "stateMutability": "nonpayable",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "totalDonationCount",
-                            "outputs": [
-                                {
-                                    "internalType": "uint256",
-                                    "name": "",
-                                    "type": "uint256"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [
-                                {
-                                    "internalType": "address",
-                                    "name": "newOwner",
-                                    "type": "address"
-                                }
-                            ],
-                            "name": "transferOwnership",
-                            "outputs": [],
-                            "stateMutability": "nonpayable",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "donationCount",
-                            "outputs": [
-                                {
-                                    "internalType": "uint256",
-                                    "name": "",
-                                    "type": "uint256"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "donate",
-                            "outputs": [],
-                            "stateMutability": "payable",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "myHistory",
-                            "outputs": [
-                                {
-                                    "internalType": "uint256[]",
-                                    "name": "values",
-                                    "type": "uint256[]"
-                                },
-                                {
-                                    "internalType": "uint256[]",
-                                    "name": "dates",
-                                    "type": "uint256[]"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "withdraw",
-                            "outputs": [],
-                            "stateMutability": "nonpayable",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [
-                                {
-                                    "internalType": "address payable",
-                                    "name": "new_address",
-                                    "type": "address"
-                                }
-                            ],
-                            "name": "setWithdrawalAddress",
-                            "outputs": [],
-                            "stateMutability": "nonpayable",
-                            "type": "function"
-                        }
-                    ]
+                    try {
+                        const name = await doneeContract.methods.name().call();
+                        const description = await doneeContract.methods.description().call();
+                        const donationCount = await doneeContract.methods.totalDonationCount().call();
+                        const raised = await doneeContract.methods.raised().call();
+                        const owner = await doneeContract.methods.owner().call();
+                        const balance = await web3.eth.getBalance(doneeAddress);
 
-                    const contract = new web3.eth.Contract(doneeAbi, doneeAddress);
+                        const raisedInUsd = (Number(raised) * ethUsdPrice) / 1e8; // Convert raised to Number and calculate USD
 
-                    const name = await contract.methods.name().call();
-                    const description = await contract.methods.description().call();
-                    const imageHash = await contract.methods.ipfsImageHash().call();
-
-                    const listItem = document.createElement('div');
-                    listItem.classList.add('card', 'mb-3');
-                    listItem.style.width = '18rem';
-                    listItem.innerHTML = `
-                    <img src="https://ipfs.io/ipfs/${imageHash}" class="card-img-top" alt="Donee Image">
-                    <div class="card-body">
-                        <h5 class="card-title">${name}</h5> <!-- Name -->
-                        <p class="card-text">${description}</p> <!-- Description -->
-                        <a href="#" class="btn btn-primary">Donate</a>
-        <!--                <p class="card-text"><small class="text-muted">Raised: $${details[3]}</small></p>-->
-                    </div>
-                `;
-                    listContainer.appendChild(listItem);
+                        const listItem = document.createElement('div');
+                        listItem.classList.add('card', 'mb-3');
+                        listItem.style.width = '18rem';
+                        listItem.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">${name}</h5>
+                            <p class="card-text">${description}</p>
+                            <p class="card-text"><small class="text-muted">Donations: ${donationCount}</small></p>
+                            <p class="card-text"><small class="text-muted">Raised: ${web3.utils.fromWei(raised, 'ether')} ETH (~$${raisedInUsd.toFixed(2)} USD)</small></p>
+                            ${currentAccount === owner ? `<p class="card-text"><small class="text-muted">Balance: ${web3.utils.fromWei(balance, 'ether')} ETH</small></p>` : ''}
+                            <a href="#" class="btn btn-primary donate-button" data-address="${doneeAddress}">Donate</a>
+                            <a href="#" class="btn btn-info history-button" data-address="${doneeAddress}">History</a>
+                            ${currentAccount === owner ? `
+                                <a href="#" class="btn btn-warning withdraw-button" data-address="${doneeAddress}">Withdraw</a>
+                                <a href="#" class="btn btn-secondary change-address-button" data-address="${doneeAddress}">Change Withdrawal Address</a>
+                            ` : ''}
+                        </div>
+                    `;
+                        listContainer.appendChild(listItem);
+                    } catch (error) {
+                        console.error(`Error fetching data for donee at address ${doneeAddress}:`, error);
+                    }
                 }
-            });
 
-            window.ethereum.on('accountsChanged', function (accounts) {
-                window.location.reload();
-            });
-            web3.eth.getAccounts().then(function(accounts) {
+                await displayAccountsAndBalances();
+
+
+                await fetchAndDisplayEvents();
+
+                document.querySelectorAll('.donate-button').forEach(button => {
+                    button.addEventListener('click', async function(event) {
+                        event.preventDefault();
+                        const doneeAddress = this.getAttribute('data-address');
+                        await donate(doneeAddress);
+                    });
+                });
+
+                // Add event listeners to withdraw buttons
+                document.querySelectorAll('.withdraw-button').forEach(button => {
+                    button.addEventListener('click', async function(event) {
+                        event.preventDefault();
+                        const doneeAddress = this.getAttribute('data-address');
+                        await withdraw(doneeAddress);
+                    });
+                });
+
+                // Add event listeners to change address buttons
+                document.querySelectorAll('.change-address-button').forEach(button => {
+                    button.addEventListener('click', async function(event) {
+                        event.preventDefault();
+                        const doneeAddress = this.getAttribute('data-address');
+                        await changeWithdrawalAddress(doneeAddress);
+                    });
+                });
+
+                // Add event listeners to history buttons
+                document.querySelectorAll('.history-button').forEach(button => {
+                    button.addEventListener('click', async function(event) {
+                        event.preventDefault();
+                        const doneeAddress = this.getAttribute('data-address');
+                        await showHistory(doneeAddress);
+                    });
+                });
+
+                window.ethereum.on('accountsChanged', function (accounts) {
+                    window.location.reload();
+                });
+
                 if (accounts.length > 0) {
-                    document.getElementById('accountAddress').textContent = accounts[0];
+                    document.getElementById('accountAddress').textContent = currentAccount;
                 } else {
                     document.getElementById('accountInfo').textContent = 'No Ethereum account connected!';
                 }
-            });
-
-            contract.events.DoneeCreated({}, (error, event) => {
-                if (error) console.log(error);
-                console.log('Event data:', event.returnValues);
-            });
+            } catch (error) {
+                console.error("An error occurred during initialization:", error);
+            }
         });
     });
+
+    async function donate(doneeAddress) {
+        const web3 = await initWeb3();
+        const accounts = await web3.eth.getAccounts();
+        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeJsonData = await doneeResponse.json();
+        const doneeAbi = doneeJsonData["abi"];
+        const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
+
+        const donationAmount = prompt("Enter the amount of ETH to donate:");
+        if (donationAmount && !isNaN(donationAmount)) {
+            try {
+                await doneeContract.methods.donate().send({
+                    from: accounts[0],
+                    value: web3.utils.toWei(donationAmount, 'ether')
+                });
+                alert('Donation successful!');
+                window.location.reload();
+            } catch (error) {
+                alert('Donation failed: ' + error.message);
+            }
+        } else {
+            alert('Invalid donation amount');
+        }
+    }
+
+    async function withdraw(doneeAddress) {
+        const web3 = await initWeb3();
+        const accounts = await web3.eth.getAccounts();
+        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeJsonData = await doneeResponse.json();
+        const doneeAbi = doneeJsonData["abi"];
+        const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
+
+        try {
+            await doneeContract.methods.withdraw().send({
+                from: accounts[0]
+            });
+            alert('Withdrawal successful!');
+            window.location.reload();
+        } catch (error) {
+            alert('Withdrawal failed: ' + error.message);
+        }
+    }
+
+    async function changeWithdrawalAddress(doneeAddress) {
+        const web3 = await initWeb3();
+        const accounts = await web3.eth.getAccounts();
+        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeJsonData = await doneeResponse.json();
+        const doneeAbi = doneeJsonData["abi"];
+        const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
+
+        const newAddress = prompt("Enter the new withdrawal address:");
+        if (web3.utils.isAddress(newAddress)) {
+            try {
+                await doneeContract.methods.setWithdrawalAddress(newAddress).send({
+                    from: accounts[0]
+                });
+                alert('Withdrawal address changed successfully!');
+                window.location.reload();
+            } catch (error) {
+                alert('Failed to change withdrawal address: ' + error.message);
+            }
+        } else {
+            alert('Invalid address');
+        }
+    }
+
+    async function showHistory(doneeAddress) {
+        const web3 = await initWeb3();
+        const accounts = await web3.eth.getAccounts();
+        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeJsonData = await doneeResponse.json();
+        const doneeAbi = doneeJsonData["abi"];
+        const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
+
+        try {
+            const result = await doneeContract.methods.myHistory().call({ from: accounts[0] });
+            const values = result[0];
+            const dates = result[1];
+
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = ''; // Clear previous history
+
+            for (let i = 0; i < values.length; i++) {
+                const listItem = document.createElement('li');
+                listItem.classList.add('list-group-item');
+                listItem.textContent = `Donation: ${web3.utils.fromWei(values[i], 'ether')} ETH on ${new Date(Number(dates[i]) * 1000).toLocaleString()}`;
+                historyList.appendChild(listItem);
+            }
+
+            const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+            historyModal.show();
+        } catch (error) {
+            alert('Failed to fetch donation history: ' + error.message);
+        }
+    }
 </script>
 </body>
 </html>

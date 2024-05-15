@@ -31,6 +31,11 @@
 						"internalType": "address",
 						"name": "creator",
 						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_priceFeedAddress",
+						"type": "address"
 					}
 				],
 				"stateMutability": "nonpayable",
@@ -83,7 +88,7 @@
 					{
 						"indexed": false,
 						"internalType": "uint256",
-						"name": "ammount",
+						"name": "amount",
 						"type": "uint256"
 					}
 				],
@@ -131,12 +136,12 @@
 			},
 			{
 				"inputs": [],
-				"name": "donationCount",
+				"name": "getLatestPrice",
 				"outputs": [
 					{
-						"internalType": "uint256",
+						"internalType": "int256",
 						"name": "",
-						"type": "uint256"
+						"type": "int256"
 					}
 				],
 				"stateMutability": "view",
@@ -202,6 +207,19 @@
 			{
 				"inputs": [],
 				"name": "raised",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "raisedInUSD",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -315,6 +333,14 @@
 		"remappings": []
 	},
 	"sources": {
+		"@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+			"keccak256": "0xfe4e8bb4861bb3860ba890ab91a3b818ec66e5a8f544fb608cfcb73f433472cd",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://644cff84052e1e82b5bb502b2a46e8f142a62b0db4cd9b38200798ba8373c6f7",
+				"dweb:/ipfs/QmTa99QHrJBn3SXDizquPBUiTxVCNKQrHgaWJhuds5Sce2"
+			]
+		},
 		"@openzeppelin/contracts/access/Ownable.sol": {
 			"keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
 			"license": "MIT",
@@ -332,11 +358,11 @@
 			]
 		},
 		"Donee.sol": {
-			"keccak256": "0x4737c56663dbbc3888a76f75d126db9a1a2f452a1cbf5016191c0df513f283a6",
+			"keccak256": "0x4b6671484b77293ce086d74a62737f45170bbc35a532d7281a9ed1dfdf0586cb",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://1c1fb13e53d24a37a9b28cef2b672270a37cd114e0e56e9ce3aa1e9d60d1e048",
-				"dweb:/ipfs/Qmbk99YgWeG2nGEnQU6y89txH2X4xEbiV879MKsy3pKEC7"
+				"bzz-raw://f9e9dbca33c706b03c4d2002517ed24d7973847ab99a882bb5aaac8b31d61a5b",
+				"dweb:/ipfs/QmSQqtEhHLERv1sDvtCovSDbhhPbdJnRwaTs8gkU25sDLd"
 			]
 		}
 	},
