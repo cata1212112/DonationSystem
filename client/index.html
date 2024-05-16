@@ -24,6 +24,12 @@
     <div id="accountsList" class="list-group"></div>
     <h2>Event Log</h2>
     <div id="eventsConsole"></div>
+    <h2>Check Address Balance</h2>
+    <div class="input-group mb-3">
+        <input type="text" id="addressInput" class="form-control" placeholder="Enter address" aria-label="Enter address">
+        <button class="btn btn-outline-secondary" type="button" onclick="checkAddressBalance()">Check Balance</button>
+    </div>
+    <div id="addressBalance"></div>
 </div>
 
 <!-- Modal for Donation History -->
@@ -46,7 +52,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="observerPattern.js"></script>
 <script src="app.js"></script>
 <script>
     let web3;
@@ -66,10 +71,11 @@
     }
 
     async function getEthUsdPrice() {
-        const priceFeedAddress = "0x76c4DABA883c1fDFdCe6734e01B9842dbabB4cA9";
         const response = await fetch('src/contracts/MockV3Aggregator.json');
         const jsonData = await response.json();
         const priceFeedABI = jsonData["abi"];
+        const priceFeedAddress = jsonData["networks"][Object.keys(jsonData["networks"])[0]]["address"];
+
         const priceFeed = new web3.eth.Contract(priceFeedABI, priceFeedAddress);
         const latestRoundData = await priceFeed.methods.latestRoundData().call();
         return Number(latestRoundData.answer); // Convert BigInt to Number
@@ -95,9 +101,42 @@
         }
     }
 
+    async function checkAddressBalance() {
+        const address = document.getElementById('addressInput').value;
+        if (web3.utils.isAddress(address)) {
+            try {
+                const balance = await web3.eth.getBalance(address);
+                const balanceInEth = web3.utils.fromWei(balance, 'ether');
+                document.getElementById('addressBalance').innerText = `Balance: ${balanceInEth} ETH`;
+            } catch (error) {
+                alert('Failed to fetch balance: ' + error.message);
+            }
+        } else {
+            alert('Invalid address');
+        }
+    }
+
+    async function estimateGasAndConfirm(transactionFunction) {
+        try {
+            const gasEstimate = await transactionFunction.estimateGas();
+            const gasPrice = await web3.eth.getGasPrice();
+            const gasCost = gasEstimate * gasPrice;
+
+            if (confirm(`Estimated Gas: ${gasEstimate}\nEstimated Gas Cost: ${web3.utils.fromWei(gasCost.toString(), 'ether')} ETH\nDo you want to proceed?`)) {
+                await transactionFunction.send();
+                alert('Transaction successful!');
+                window.location.reload();
+            } else {
+                alert('Transaction cancelled');
+            }
+        } catch (error) {
+            alert('Gas estimation failed: ' + error.message);
+        }
+    }
+
     function handleDoneeCreated(event) {
         console.log('Donee Created Event:', event.returnValues);
-        fetchAndDisplayEvents();
+        // fetchAndDisplayEvents();
     }
 
     async function setupEventListeners(doneeFactoryContract) {
@@ -128,12 +167,9 @@
             try {
                 const response = await fetch('src/contracts/DoneeFactory.json');
                 const jsonData = await response.json();
-                const doneeFactoryAddress = '0x0afF9ed7941A6BAD7F878Cbf34A49182f1A85A2f';
+                const doneeFactoryAddress = jsonData["networks"][Object.keys(jsonData["networks"])[0]]["address"];
                 const doneeFactoryABI = jsonData["abi"];
 
-                const doneeObserver = new DoneeObserver();
-                const subject = new Subject();
-                subject.addObserver(doneeObserver);
 
                 const doneeFactoryContract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
                 setupEventListeners(doneeFactoryContract);
@@ -142,9 +178,9 @@
                 const listContainer = document.getElementById('doneesList');
                 const accounts = await web3.eth.getAccounts();
                 const currentAccount = accounts[0];
-
                 // Fetch the latest ETH/USD price
                 const ethUsdPrice = await getEthUsdPrice();
+
 
                 for (const doneeAddress of donees) {
                     const doneeResponse = await fetch('src/contracts/Donee.json');
@@ -155,17 +191,19 @@
                     try {
                         const name = await doneeContract.methods.name().call();
                         const description = await doneeContract.methods.description().call();
+                        const imageHash = await doneeContract.methods.ipfsImageHash().call();
                         const donationCount = await doneeContract.methods.totalDonationCount().call();
                         const raised = await doneeContract.methods.raised().call();
                         const owner = await doneeContract.methods.owner().call();
                         const balance = await web3.eth.getBalance(doneeAddress);
 
-                        const raisedInUsd = (Number(raised) * ethUsdPrice) / 1e8; // Convert raised to Number and calculate USD
+                        const raisedInUsd = (Number(raised) * ethUsdPrice) / 1e18; // Convert raised to Number and calculate USD
 
                         const listItem = document.createElement('div');
                         listItem.classList.add('card', 'mb-3');
                         listItem.style.width = '18rem';
                         listItem.innerHTML = `
+                        <img src="https://ipfs.io/ipfs/${imageHash}" class="card-img-top" alt="Donee Image">
                         <div class="card-body">
                             <h5 class="card-title">${name}</h5>
                             <p class="card-text">${description}</p>
@@ -189,13 +227,13 @@
                 await displayAccountsAndBalances();
 
 
-                await fetchAndDisplayEvents();
+                // await fetchAndDisplayEvents();
 
                 document.querySelectorAll('.donate-button').forEach(button => {
                     button.addEventListener('click', async function(event) {
                         event.preventDefault();
                         const doneeAddress = this.getAttribute('data-address');
-                        await donate(doneeAddress);
+                        await estimateGasAndConfirm(() => donate(doneeAddress));
                     });
                 });
 
@@ -204,7 +242,7 @@
                     button.addEventListener('click', async function(event) {
                         event.preventDefault();
                         const doneeAddress = this.getAttribute('data-address');
-                        await withdraw(doneeAddress);
+                        await estimateGasAndConfirm(() => withdraw(doneeAddress));
                     });
                 });
 
@@ -213,7 +251,7 @@
                     button.addEventListener('click', async function(event) {
                         event.preventDefault();
                         const doneeAddress = this.getAttribute('data-address');
-                        await changeWithdrawalAddress(doneeAddress);
+                        await estimateGasAndConfirm(() => changeWithdrawalAddress(doneeAddress));
                     });
                 });
 

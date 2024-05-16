@@ -30,9 +30,44 @@
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/ipfs-http-client/dist/index.min.js"></script>
 <script src="app.js"></script>
 <script>
+    async function initWeb3() {
+        if (window.ethereum) {
+            const web3 = new Web3(window.ethereum);
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                return web3;
+            } catch (error) {
+                console.error("User denied account access", error);
+            }
+        } else {
+            console.error('Non-Ethereum browser detected. Consider trying MetaMask!');
+        }
+    }
+
+    async function pinFileToIPFS(file) {
+        const url = `https://api.pinata.cloud/pinning/pinFileToIPFS`;
+        const apiKey = '19eec65fbf17fcbc8ed1';
+        const secretApiKey = 'b2ad9e019cf10f6ddb6442e240e134cce3d464a28a2d8d319a7271bdf790e9bd';
+
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'pinata_api_key': apiKey,
+                'pinata_secret_api_key': secretApiKey
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+        return result.IpfsHash.toString();
+    }
+
     async function createDonee(event) {
         event.preventDefault();
         const web3 = await initWeb3();
@@ -41,48 +76,40 @@
         const imageFile = document.getElementById('imageInput').files[0];
         const withdrawalAddress = document.getElementById('addressInput').value;
 
-        // Configure IPFS client
-        // const projectId = "";  // Add your project ID
-        // const projectSecret = "";  // Add your project secret
-        // const auth = 'Basic ' + btoa(projectId + ':' + projectSecret);
-        //
-        // const ipfsClient = window.IpfsHttpClient.create({
-        //     host: 'ipfs.infura.io',
-        //     port: 5001,
-        //     protocol: 'https',
-        //     apiPath: '/api/v0',
-        //     headers: {
-        //         authorization: auth
-        //     }
-        // });
-
         try {
-            // const added = await ipfsClient.add(imageFile);
-            // const ipfsImageHash = added.path;
-            // console.log('IPFS hash for the uploaded image:', ipfsImageHash);
+            const ipfsImageHash = await pinFileToIPFS(imageFile);
+            console.log('IPFS hash for the uploaded image:', ipfsImageHash);
 
-            // Fetch ABI using fetch instead of require
             const response = await fetch('src/contracts/DoneeFactory.json');
             const jsonData = await response.json();
-            const doneeFactoryAddress = '0x0afF9ed7941A6BAD7F878Cbf34A49182f1A85A2f';
+            const doneeFactoryAddress = jsonData["networks"][Object.keys(jsonData["networks"])[0]]["address"];
             const doneeFactoryABI = jsonData["abi"];
-            console.log("Donee Factory ABI:", JSON.stringify(doneeFactoryABI));
 
             const contract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
 
             try {
                 const accounts = await web3.eth.getAccounts();
-                await contract.methods.createDonee(name, description, "ipfsImageHash", withdrawalAddress)
-                    .send({ from: accounts[0] })
-                    .on('receipt', function(receipt) {
-                        console.log('Donee created successfully:', receipt);
-                        alert('Donee created successfully!');
-                        window.location.href = 'index.html'; // Redirect to main page
-                    })
-                    .on('error', function(error) {
-                        console.error('Failed to create donee:', error);
-                        alert('Failed to create donee: ' + error.message);
-                    });
+                const transaction = contract.methods.createDonee(name, description, ipfsImageHash, withdrawalAddress);
+
+                // Estimate gas
+                const gasEstimate = await transaction.estimateGas({ from: accounts[0] });
+                const gasPrice = await web3.eth.getGasPrice();
+                const gasCost = gasEstimate * gasPrice;
+
+                if (confirm(`Estimated Gas: ${gasEstimate}\nEstimated Gas Cost: ${web3.utils.fromWei(gasCost.toString(), 'ether')} ETH\nDo you want to proceed?`)) {
+                    await transaction.send({ from: accounts[0] })
+                        .on('receipt', function(receipt) {
+                            console.log('Donee created successfully:', receipt);
+                            alert('Donee created successfully!');
+                            window.location.href = 'index.html'; // Redirect to main page
+                        })
+                        .on('error', function(error) {
+                            console.error('Failed to create donee:', error);
+                            alert('Failed to create donee: ' + error.message);
+                        });
+                } else {
+                    alert('Transaction cancelled');
+                }
             } catch (error) {
                 alert('Failed to create donee: ' + error.message);
             }
