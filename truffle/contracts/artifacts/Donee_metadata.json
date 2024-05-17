@@ -358,11 +358,11 @@
 			]
 		},
 		"Donee.sol": {
-			"keccak256": "0x4b6671484b77293ce086d74a62737f45170bbc35a532d7281a9ed1dfdf0586cb",
+			"keccak256": "0xffc94befcbf1e7079334d11975a808b9739c0b44c8ace165ef8dc70215a38db0",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://f9e9dbca33c706b03c4d2002517ed24d7973847ab99a882bb5aaac8b31d61a5b",
-				"dweb:/ipfs/QmSQqtEhHLERv1sDvtCovSDbhhPbdJnRwaTs8gkU25sDLd"
+				"bzz-raw://75e148191586d09051adc226f059eafea6859a8a4ab5c847c4b7e05b015427dc",
+				"dweb:/ipfs/QmUKi47nVAcoBuF7qaP735XTWFKGhDA5HQU2cDAwFcBPcW"
 			]
 		}
 	},

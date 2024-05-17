@@ -96,6 +96,6 @@ contract Donee is Ownable {
     function raisedInUSD() public view returns (uint256) {
         int ethPrice = getLatestPrice();
         require(ethPrice > 0, "Invalid price data");
-        return (raised * uint256(ethPrice)) / 1e8; // Adjust for Chainlink's price precision (8 decimals)
+        return (raised * uint256(ethPrice)) / 1e8;
     }
 }

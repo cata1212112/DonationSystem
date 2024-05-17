@@ -33,17 +33,9 @@
 <script src="app.js"></script>
 <script>
     async function initWeb3() {
-        if (window.ethereum) {
-            const web3 = new Web3(window.ethereum);
-            try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                return web3;
-            } catch (error) {
-                console.error("User denied account access", error);
-            }
-        } else {
-            console.error('Non-Ethereum browser detected. Consider trying MetaMask!');
-        }
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        return web3;
     }
 
     async function pinFileToIPFS(file) {
@@ -76,45 +68,36 @@
         const imageFile = document.getElementById('imageInput').files[0];
         const withdrawalAddress = document.getElementById('addressInput').value;
 
-        try {
-            const ipfsImageHash = await pinFileToIPFS(imageFile);
-            console.log('IPFS hash for the uploaded image:', ipfsImageHash);
+        const ipfsImageHash = await pinFileToIPFS(imageFile);
+        console.log('IPFS hash for the uploaded image:', ipfsImageHash);
 
-            const response = await fetch('src/contracts/DoneeFactory.json');
-            const jsonData = await response.json();
-            const doneeFactoryAddress = jsonData["networks"][Object.keys(jsonData["networks"])[0]]["address"];
-            const doneeFactoryABI = jsonData["abi"];
+        const response = await fetch('src/contracts/DoneeFactory.json');
+        const jsonData = await response.json();
+        const doneeFactoryAddress = jsonData["networks"][Object.keys(jsonData["networks"])[0]]["address"];
+        const doneeFactoryABI = jsonData["abi"];
 
-            const contract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
+        const contract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
 
-            try {
-                const accounts = await web3.eth.getAccounts();
-                const transaction = contract.methods.createDonee(name, description, ipfsImageHash, withdrawalAddress);
+        const accounts = await web3.eth.getAccounts();
+        const transaction = contract.methods.createDonee(name, description, ipfsImageHash, withdrawalAddress);
 
-                // Estimate gas
-                const gasEstimate = await transaction.estimateGas({ from: accounts[0] });
-                const gasPrice = await web3.eth.getGasPrice();
-                const gasCost = gasEstimate * gasPrice;
+        const gasEstimate = await transaction.estimateGas({ from: accounts[0] });
+        const gasPrice = await web3.eth.getGasPrice();
+        const gasCost = gasEstimate * gasPrice;
 
-                if (confirm(`Estimated Gas: ${gasEstimate}\nEstimated Gas Cost: ${web3.utils.fromWei(gasCost.toString(), 'ether')} ETH\nDo you want to proceed?`)) {
-                    await transaction.send({ from: accounts[0] })
-                        .on('receipt', function(receipt) {
-                            console.log('Donee created successfully:', receipt);
-                            alert('Donee created successfully!');
-                            window.location.href = 'index.html'; // Redirect to main page
-                        })
-                        .on('error', function(error) {
-                            console.error('Failed to create donee:', error);
-                            alert('Failed to create donee: ' + error.message);
-                        });
-                } else {
-                    alert('Transaction cancelled');
-                }
-            } catch (error) {
-                alert('Failed to create donee: ' + error.message);
-            }
-        } catch (error) {
-            console.error('Error uploading file to IPFS:', error);
+        if (confirm(`Estimated Gas: ${gasEstimate}\nEstimated Gas Cost: ${web3.utils.fromWei(gasCost.toString(), 'ether')} ETH\nDo you want to proceed?`)) {
+            await transaction.send({ from: accounts[0] })
+                .on('receipt', function(receipt) {
+                    console.log('Donee created successfully:', receipt);
+                    alert('Donee created successfully!');
+                    window.location.href = 'index.html'; // Redirect to main page
+                })
+                .on('error', function(error) {
+                    console.error('Failed to create donee:', error);
+                    alert('Failed to create donee: ' + error.message);
+                });
+        } else {
+            alert('Transaction cancelled');
         }
     }
 </script>

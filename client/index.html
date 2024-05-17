@@ -4,15 +4,6 @@
     <meta charset="UTF-8">
     <title>Donee DApp</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css">
-    <style>
-        #eventsConsole {
-            height: 200px;
-            overflow-y: scroll;
-            background-color: #f8f9fa;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-        }
-    </style>
 </head>
 <body>
 <div class="container mt-5">
@@ -22,8 +13,6 @@
     <div id="doneesList" class="list-group"></div>
     <h2>All Accounts and Balances</h2>
     <div id="accountsList" class="list-group"></div>
-    <h2>Event Log</h2>
-    <div id="eventsConsole"></div>
     <h2>Check Address Balance</h2>
     <div class="input-group mb-3">
         <input type="text" id="addressInput" class="form-control" placeholder="Enter address" aria-label="Enter address">
@@ -57,17 +46,9 @@
     let web3;
 
     async function initWeb3() {
-        if (window.ethereum) {
-            web3 = new Web3(window.ethereum);
-            try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                return web3;
-            } catch (error) {
-                console.error("User denied account access", error);
-            }
-        } else {
-            console.error('Non-Ethereum browser detected. Consider trying MetaMask!');
-        }
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        return web3;
     }
 
     async function getEthUsdPrice() {
@@ -104,62 +85,12 @@
     async function checkAddressBalance() {
         const address = document.getElementById('addressInput').value;
         if (web3.utils.isAddress(address)) {
-            try {
-                const balance = await web3.eth.getBalance(address);
-                const balanceInEth = web3.utils.fromWei(balance, 'ether');
-                document.getElementById('addressBalance').innerText = `Balance: ${balanceInEth} ETH`;
-            } catch (error) {
-                alert('Failed to fetch balance: ' + error.message);
-            }
+            const balance = await web3.eth.getBalance(address);
+            const balanceInEth = web3.utils.fromWei(balance, 'ether');
+            document.getElementById('addressBalance').innerText = `Balance: ${balanceInEth} ETH`;
         } else {
             alert('Invalid address');
         }
-    }
-
-    async function estimateGasAndConfirm(transactionFunction) {
-        try {
-            const gasEstimate = await transactionFunction.estimateGas();
-            const gasPrice = await web3.eth.getGasPrice();
-            const gasCost = gasEstimate * gasPrice;
-
-            if (confirm(`Estimated Gas: ${gasEstimate}\nEstimated Gas Cost: ${web3.utils.fromWei(gasCost.toString(), 'ether')} ETH\nDo you want to proceed?`)) {
-                await transactionFunction.send();
-                alert('Transaction successful!');
-                window.location.reload();
-            } else {
-                alert('Transaction cancelled');
-            }
-        } catch (error) {
-            alert('Gas estimation failed: ' + error.message);
-        }
-    }
-
-    function handleDoneeCreated(event) {
-        console.log('Donee Created Event:', event.returnValues);
-        // fetchAndDisplayEvents();
-    }
-
-    async function setupEventListeners(doneeFactoryContract) {
-        doneeFactoryContract.events.DoneeCreated({}, (error, event) => {
-            if (error) {
-                console.error('Error handling DoneeCreated event:', error);
-            } else {
-                handleDoneeCreated(event);
-            }
-        });
-    }
-
-    async function fetchAndDisplayEvents() {
-        const response = await fetch('http://localhost:3000/events');
-        const events = await response.json();
-        const eventsConsole = document.getElementById('eventsConsole');
-        eventsConsole.innerHTML = '';
-        events.forEach(event => {
-            const eventElement = document.createElement('div');
-            eventElement.innerText = `${event.timestamp} - ${event.event}: ${JSON.stringify(event.returnValues)}`;
-            eventsConsole.appendChild(eventElement);
-        });
-        eventsConsole.scrollTop = eventsConsole.scrollHeight; // Scroll to bottom
     }
 
     window.addEventListener('load', function() {
@@ -172,7 +103,6 @@
 
 
                 const doneeFactoryContract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
-                setupEventListeners(doneeFactoryContract);
 
                 const donees = await doneeFactoryContract.methods.allDonees().call();
                 const listContainer = document.getElementById('doneesList');
@@ -188,21 +118,19 @@
                     const doneeAbi = doneeJsonData["abi"];
                     const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
 
-                    try {
-                        const name = await doneeContract.methods.name().call();
-                        const description = await doneeContract.methods.description().call();
-                        const imageHash = await doneeContract.methods.ipfsImageHash().call();
-                        const donationCount = await doneeContract.methods.totalDonationCount().call();
-                        const raised = await doneeContract.methods.raised().call();
-                        const owner = await doneeContract.methods.owner().call();
-                        const balance = await web3.eth.getBalance(doneeAddress);
+                    const name = await doneeContract.methods.name().call();
+                    const description = await doneeContract.methods.description().call();
+                    const imageHash = await doneeContract.methods.ipfsImageHash().call();
+                    const donationCount = await doneeContract.methods.totalDonationCount().call();
+                    const raised = await doneeContract.methods.raised().call();
+                    const owner = await doneeContract.methods.owner().call();
+                    const balance = await web3.eth.getBalance(doneeAddress);
 
-                        const raisedInUsd = (Number(raised) * ethUsdPrice) / 1e18; // Convert raised to Number and calculate USD
-
-                        const listItem = document.createElement('div');
-                        listItem.classList.add('card', 'mb-3');
-                        listItem.style.width = '18rem';
-                        listItem.innerHTML = `
+                    const raisedInUsd = (Number(raised) * ethUsdPrice) / 1e18;
+                    const listItem = document.createElement('div');
+                    listItem.classList.add('card', 'mb-3');
+                    listItem.style.width = '18rem';
+                    listItem.innerHTML = `
                         <img src="https://ipfs.io/ipfs/${imageHash}" class="card-img-top" alt="Donee Image">
                         <div class="card-body">
                             <h5 class="card-title">${name}</h5>
@@ -218,44 +146,35 @@
                             ` : ''}
                         </div>
                     `;
-                        listContainer.appendChild(listItem);
-                    } catch (error) {
-                        console.error(`Error fetching data for donee at address ${doneeAddress}:`, error);
-                    }
+                    listContainer.appendChild(listItem);
                 }
 
                 await displayAccountsAndBalances();
-
-
-                // await fetchAndDisplayEvents();
 
                 document.querySelectorAll('.donate-button').forEach(button => {
                     button.addEventListener('click', async function(event) {
                         event.preventDefault();
                         const doneeAddress = this.getAttribute('data-address');
-                        await estimateGasAndConfirm(() => donate(doneeAddress));
+                        await donate(doneeAddress);
                     });
                 });
 
-                // Add event listeners to withdraw buttons
                 document.querySelectorAll('.withdraw-button').forEach(button => {
                     button.addEventListener('click', async function(event) {
                         event.preventDefault();
                         const doneeAddress = this.getAttribute('data-address');
-                        await estimateGasAndConfirm(() => withdraw(doneeAddress));
+                        await withdraw(doneeAddress);
                     });
                 });
 
-                // Add event listeners to change address buttons
                 document.querySelectorAll('.change-address-button').forEach(button => {
                     button.addEventListener('click', async function(event) {
                         event.preventDefault();
                         const doneeAddress = this.getAttribute('data-address');
-                        await estimateGasAndConfirm(() => changeWithdrawalAddress(doneeAddress));
+                        await changeWithdrawalAddress(doneeAddress);
                     });
                 });
 
-                // Add event listeners to history buttons
                 document.querySelectorAll('.history-button').forEach(button => {
                     button.addEventListener('click', async function(event) {
                         event.preventDefault();
@@ -274,7 +193,7 @@
                     document.getElementById('accountInfo').textContent = 'No Ethereum account connected!';
                 }
             } catch (error) {
-                console.error("An error occurred during initialization:", error);
+                console.error("error");
             }
         });
     });
@@ -289,16 +208,11 @@
 
         const donationAmount = prompt("Enter the amount of ETH to donate:");
         if (donationAmount && !isNaN(donationAmount)) {
-            try {
-                await doneeContract.methods.donate().send({
-                    from: accounts[0],
-                    value: web3.utils.toWei(donationAmount, 'ether')
-                });
-                alert('Donation successful!');
-                window.location.reload();
-            } catch (error) {
-                alert('Donation failed: ' + error.message);
-            }
+            await doneeContract.methods.donate().send({
+                from: accounts[0],
+                value: web3.utils.toWei(donationAmount, 'ether')
+            });
+            window.location.reload();
         } else {
             alert('Invalid donation amount');
         }
@@ -312,15 +226,10 @@
         const doneeAbi = doneeJsonData["abi"];
         const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
 
-        try {
-            await doneeContract.methods.withdraw().send({
-                from: accounts[0]
-            });
-            alert('Withdrawal successful!');
-            window.location.reload();
-        } catch (error) {
-            alert('Withdrawal failed: ' + error.message);
-        }
+        await doneeContract.methods.withdraw().send({
+            from: accounts[0]
+        });
+        window.location.reload();
     }
 
     async function changeWithdrawalAddress(doneeAddress) {
@@ -333,15 +242,10 @@
 
         const newAddress = prompt("Enter the new withdrawal address:");
         if (web3.utils.isAddress(newAddress)) {
-            try {
-                await doneeContract.methods.setWithdrawalAddress(newAddress).send({
-                    from: accounts[0]
-                });
-                alert('Withdrawal address changed successfully!');
-                window.location.reload();
-            } catch (error) {
-                alert('Failed to change withdrawal address: ' + error.message);
-            }
+            await doneeContract.methods.setWithdrawalAddress(newAddress).send({
+                from: accounts[0]
+            });
+            window.location.reload();
         } else {
             alert('Invalid address');
         }
@@ -355,26 +259,22 @@
         const doneeAbi = doneeJsonData["abi"];
         const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
 
-        try {
-            const result = await doneeContract.methods.myHistory().call({ from: accounts[0] });
-            const values = result[0];
-            const dates = result[1];
+        const result = await doneeContract.methods.myHistory().call({ from: accounts[0] });
+        const values = result[0];
+        const dates = result[1];
 
-            const historyList = document.getElementById('historyList');
-            historyList.innerHTML = ''; // Clear previous history
+        const historyList = document.getElementById('historyList');
+        historyList.innerHTML = '';
 
-            for (let i = 0; i < values.length; i++) {
-                const listItem = document.createElement('li');
-                listItem.classList.add('list-group-item');
-                listItem.textContent = `Donation: ${web3.utils.fromWei(values[i], 'ether')} ETH on ${new Date(Number(dates[i]) * 1000).toLocaleString()}`;
-                historyList.appendChild(listItem);
-            }
-
-            const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
-            historyModal.show();
-        } catch (error) {
-            alert('Failed to fetch donation history: ' + error.message);
+        for (let i = 0; i < values.length; i++) {
+            const listItem = document.createElement('li');
+            listItem.classList.add('list-group-item');
+            listItem.textContent = `Donation: ${web3.utils.fromWei(values[i], 'ether')} ETH on ${new Date(Number(dates[i]) * 1000).toLocaleString()}`;
+            historyList.appendChild(listItem);
         }
+
+        const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+        historyModal.show();
     }
 </script>
 </body>
