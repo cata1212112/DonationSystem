@@ -13,8 +13,8 @@ contract Donee is Ownable {
     mapping(address => Donation[]) private _donations;
     uint256 public raised;
     uint256 public totalDonationCount;
-    event donationReceived(address indexed donor, uint256 value);
-    event Withdraw(uint256 amount);
+    event donationReceived(address donor, uint256 value, address to);
+    event Withdraw(uint256 amount, address from, address to);
 
     string public name;
     string public description;
@@ -55,7 +55,7 @@ contract Donee is Ownable {
         _donations[msg.sender].push(donation);
         raised += msg.value;
         totalDonationCount += 1;
-        emit donationReceived(msg.sender, msg.value);
+        emit donationReceived(msg.sender, msg.value, address(this));
     }
 
     function myHistory() external view returns (uint256[] memory values, uint256[] memory dates) {
@@ -75,7 +75,7 @@ contract Donee is Ownable {
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
         donee_address.transfer(balance);
-        emit Withdraw(balance);
+        emit Withdraw(balance, address(this), donee_address);
     }
 
     function setWithdrawalAddress(address payable new_address) external onlyOwner rateLimit(60) {

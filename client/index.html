@@ -21,7 +21,6 @@
     <div id="addressBalance"></div>
 </div>
 
-<!-- Modal for Donation History -->
 <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -96,24 +95,26 @@
     window.addEventListener('load', function() {
         initWeb3().then(async () => {
             try {
-                const response = await fetch('src/contracts/DoneeFactory.json');
+                const response = await fetch('src/contracts/DoneeFactory.json', { cache: 'no-store' });
                 const jsonData = await response.json();
+                console.log(jsonData)
                 const doneeFactoryAddress = jsonData["networks"][Object.keys(jsonData["networks"])[0]]["address"];
                 const doneeFactoryABI = jsonData["abi"];
 
-
+                console.log(doneeFactoryAddress)
                 const doneeFactoryContract = new web3.eth.Contract(doneeFactoryABI, doneeFactoryAddress);
-
+                console.log(doneeFactoryContract)
+                console.log("aici")
                 const donees = await doneeFactoryContract.methods.allDonees().call();
                 const listContainer = document.getElementById('doneesList');
                 const accounts = await web3.eth.getAccounts();
                 const currentAccount = accounts[0];
-                // Fetch the latest ETH/USD price
-                const ethUsdPrice = await getEthUsdPrice();
 
+                const ethUsdPrice = await getEthUsdPrice();
+                console.log("merge")
 
                 for (const doneeAddress of donees) {
-                    const doneeResponse = await fetch('src/contracts/Donee.json');
+                    const doneeResponse = await fetch('src/contracts/Donee.json', { cache: 'no-store' });
                     const doneeJsonData = await doneeResponse.json();
                     const doneeAbi = doneeJsonData["abi"];
                     const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
@@ -201,7 +202,7 @@
     async function donate(doneeAddress) {
         const web3 = await initWeb3();
         const accounts = await web3.eth.getAccounts();
-        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeResponse = await fetch('src/contracts/Donee.json', { cache: 'no-store' });
         const doneeJsonData = await doneeResponse.json();
         const doneeAbi = doneeJsonData["abi"];
         const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
@@ -221,7 +222,7 @@
     async function withdraw(doneeAddress) {
         const web3 = await initWeb3();
         const accounts = await web3.eth.getAccounts();
-        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeResponse = await fetch('src/contracts/Donee.json', { cache: 'no-store' });
         const doneeJsonData = await doneeResponse.json();
         const doneeAbi = doneeJsonData["abi"];
         const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
@@ -235,7 +236,7 @@
     async function changeWithdrawalAddress(doneeAddress) {
         const web3 = await initWeb3();
         const accounts = await web3.eth.getAccounts();
-        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeResponse = await fetch('src/contracts/Donee.json', { cache: 'no-store' });
         const doneeJsonData = await doneeResponse.json();
         const doneeAbi = doneeJsonData["abi"];
         const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);
@@ -254,7 +255,7 @@
     async function showHistory(doneeAddress) {
         const web3 = await initWeb3();
         const accounts = await web3.eth.getAccounts();
-        const doneeResponse = await fetch('src/contracts/Donee.json');
+        const doneeResponse = await fetch('src/contracts/Donee.json', { cache: 'no-store' });
         const doneeJsonData = await doneeResponse.json();
         const doneeAbi = doneeJsonData["abi"];
         const doneeContract = new web3.eth.Contract(doneeAbi, doneeAddress);

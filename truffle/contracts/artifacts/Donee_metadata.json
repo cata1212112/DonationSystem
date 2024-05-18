@@ -90,6 +90,18 @@
 						"internalType": "uint256",
 						"name": "amount",
 						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
 					}
 				],
 				"name": "Withdraw",
@@ -99,7 +111,7 @@
 				"anonymous": false,
 				"inputs": [
 					{
-						"indexed": true,
+						"indexed": false,
 						"internalType": "address",
 						"name": "donor",
 						"type": "address"
@@ -109,6 +121,12 @@
 						"internalType": "uint256",
 						"name": "value",
 						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
 					}
 				],
 				"name": "donationReceived",
@@ -358,11 +376,11 @@
 			]
 		},
 		"Donee.sol": {
-			"keccak256": "0xffc94befcbf1e7079334d11975a808b9739c0b44c8ace165ef8dc70215a38db0",
+			"keccak256": "0x5a7d4b04b17c7688cf6934aed057047d9bfaa7fe55129ca818cd2aaf3e846a12",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://75e148191586d09051adc226f059eafea6859a8a4ab5c847c4b7e05b015427dc",
-				"dweb:/ipfs/QmUKi47nVAcoBuF7qaP735XTWFKGhDA5HQU2cDAwFcBPcW"
+				"bzz-raw://1d4b8b728e38677a1507dec67a5d9f3034034506bb6bc2241fa25dbf7d5d65ea",
+				"dweb:/ipfs/QmYTGasxewNZ3Buwsq6BLS5J4fURUe1ZiSMSHKnePEpVSv"
 			]
 		}
 	},

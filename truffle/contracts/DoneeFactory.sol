@@ -7,7 +7,7 @@ contract DoneeFactory {
     Donee[] private _donees;
     address private priceFeedAddress;
 
-    event DoneeCreated(Donee indexed donee, address indexed creator);
+    event DoneeCreated(Donee donee, address creator);
 
     constructor(address _priceFeedAddress) {
         priceFeedAddress = _priceFeedAddress;

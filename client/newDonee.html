@@ -71,7 +71,7 @@
         const ipfsImageHash = await pinFileToIPFS(imageFile);
         console.log('IPFS hash for the uploaded image:', ipfsImageHash);
 
-        const response = await fetch('src/contracts/DoneeFactory.json');
+        const response = await fetch('src/contracts/DoneeFactory.json', { cache: 'no-store' });
         const jsonData = await response.json();
         const doneeFactoryAddress = jsonData["networks"][Object.keys(jsonData["networks"])[0]]["address"];
         const doneeFactoryABI = jsonData["abi"];
